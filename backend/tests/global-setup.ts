@@ -1,0 +1,8 @@
+import { execSync } from 'node:child_process';
+import { rmSync } from 'node:fs';
+
+export default function setup(): void {
+  rmSync('prisma/test.db', { force: true });
+  rmSync('prisma/test.db-journal', { force: true });
+  execSync('npx prisma migrate deploy', { stdio: 'ignore', env: { ...process.env, DATABASE_URL: 'file:./test.db' } });
+}

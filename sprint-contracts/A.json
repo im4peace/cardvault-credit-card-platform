@@ -1,0 +1,54 @@
+{
+  "group": "A",
+  "stories": ["AUTH-1", "AUTH-2", "APP-1", "APP-2", "CARD-1", "LIMIT-1", "LIMIT-2", "AUDIT-1", "ISO-1", "UI-1", "UI-2", "SEC-1"],
+  "features": ["F001", "F002", "F003", "F004", "F005", "F006", "F007", "F008", "F009", "F010", "F011", "F012"],
+  "approved": true,
+  "contract": {
+    "api_checks": [
+      { "id": "api-001", "method": "GET", "path": "/health", "expect": { "status": 200, "body_contains": ["ok"] }, "description": "Health check" },
+      { "id": "api-002", "method": "GET", "path": "/applications", "expect": { "status": 401, "body_contains": ["Missing bearer token"] }, "description": "Customer route requires auth" },
+      { "id": "api-003", "method": "GET", "path": "/officer/applications", "expect": { "status": 401, "body_contains": ["Missing bearer token"] }, "description": "Officer route requires auth" },
+      { "id": "api-004", "method": "POST", "path": "/auth/login", "headers": { "Content-Type": "application/json" }, "body": { "email": "customer@test.com", "password": "Customer123!" }, "expect": { "status": 200, "body_contains": ["token", "CUSTOMER"] }, "description": "Seeded customer can log in" },
+      { "id": "api-005", "method": "POST", "path": "/auth/login", "headers": { "Content-Type": "application/json" }, "body": { "email": "officer@test.com", "password": "wrong" }, "expect": { "status": 401, "body_contains": ["Invalid email or password"] }, "description": "Bad password rejected" }
+    ],
+    "playwright_checks": [
+      {
+        "id": "pw-001",
+        "description": "Customer signs in and sees the ACTIVE card status on the dashboard",
+        "url": "/login",
+        "steps": [
+          { "action": "navigate", "selector": null, "value": "/login", "assertion": "login page loaded" },
+          { "action": "fill", "selector": "getByLabel('Email')", "value": "customer@test.com", "assertion": null },
+          { "action": "fill", "selector": "getByLabel('Password')", "value": "Customer123!", "assertion": null },
+          { "action": "click", "selector": "getByRole('button', { name: 'Sign in' })", "value": null, "assertion": null },
+          { "action": "assert_visible", "selector": "getByText('Customer Portal')", "value": null, "assertion": "customer portal visible" },
+          { "action": "assert_visible", "selector": "getByText('ACTIVE')", "value": null, "assertion": "active card status visible" }
+        ]
+      },
+      {
+        "id": "pw-002",
+        "description": "Officer signs in and sees the Credit Team portal",
+        "url": "/login",
+        "steps": [
+          { "action": "navigate", "selector": null, "value": "/login", "assertion": "login page loaded" },
+          { "action": "fill", "selector": "getByLabel('Email')", "value": "officer@test.com", "assertion": null },
+          { "action": "fill", "selector": "getByLabel('Password')", "value": "Officer123!", "assertion": null },
+          { "action": "click", "selector": "getByRole('button', { name: 'Sign in' })", "value": null, "assertion": null },
+          { "action": "assert_visible", "selector": "getByText('Credit Team Portal')", "value": null, "assertion": "officer portal visible" }
+        ]
+      }
+    ],
+    "design_checks": {},
+    "performance_checks": [{ "endpoint": "/health", "max_response_time_ms": 500, "method": "GET" }],
+    "architecture_checks": {
+      "files_must_exist": [
+        "backend/prisma/schema.prisma",
+        "backend/src/service/application.ts",
+        "backend/src/service/limit.ts",
+        "backend/src/service/card.ts",
+        "frontend/src/App.tsx",
+        "e2e/tests/full-flow.spec.ts"
+      ]
+    }
+  }
+}

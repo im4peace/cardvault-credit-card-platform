@@ -1,0 +1,141 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// Statuses/roles are stored as strings and validated in src/types (SQLite has no enums).
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  role         String // CUSTOMER | CREDIT_OFFICER
+  createdAt    DateTime @default(now())
+
+  profile          CustomerProfile?
+  applications     CreditCardApplication[]
+  cards            Card[]
+  limitRequests    CreditLimitRequest[]
+  creditDecisions  CreditDecision[]
+  limitDecisions   LimitDecision[]
+  auditLogs        AuditLog[]
+}
+
+model CustomerProfile {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id])
+  firstName   String
+  lastName    String
+  phone       String?
+  dateOfBirth DateTime?
+  address     String?
+  city        String?
+  country     String?
+  createdAt   DateTime @default(now())
+}
+
+model CreditCardApplication {
+  id                   String   @id @default(cuid())
+  customerId           String
+  customer             User     @relation(fields: [customerId], references: [id])
+  status               String   @default("DRAFT")
+  firstName            String
+  lastName             String
+  email                String
+  phone                String
+  dateOfBirth          DateTime
+  address              String
+  city                 String
+  country              String
+  employmentStatus     String
+  employerName         String?
+  monthlyIncome        Float
+  requestedCreditLimit Float
+  submittedAt          DateTime?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  decision CreditDecision?
+  card     Card?
+
+  @@index([customerId])
+  @@index([status])
+}
+
+model CreditDecision {
+  id            String   @id @default(cuid())
+  applicationId String   @unique
+  application   CreditCardApplication @relation(fields: [applicationId], references: [id])
+  officerId     String
+  officer       User     @relation(fields: [officerId], references: [id])
+  decision      String // APPROVED | REJECTED
+  approvedLimit Float?
+  comment       String?
+  decidedAt     DateTime @default(now())
+}
+
+model Card {
+  id             String   @id @default(cuid())
+  customerId     String
+  customer       User     @relation(fields: [customerId], references: [id])
+  applicationId  String   @unique
+  application    CreditCardApplication @relation(fields: [applicationId], references: [id])
+  status         String   @default("ISSUED") // ISSUED | ACTIVE | BLOCKED | CLOSED
+  creditLimit    Float
+  availableLimit Float
+  issuedAt       DateTime @default(now())
+  activatedAt    DateTime?
+
+  limitRequests CreditLimitRequest[]
+
+  @@index([customerId])
+}
+
+model CreditLimitRequest {
+  id             String   @id @default(cuid())
+  cardId         String
+  card           Card     @relation(fields: [cardId], references: [id])
+  customerId     String
+  customer       User     @relation(fields: [customerId], references: [id])
+  type           String // CREDIT_LIMIT_INCREASE | CREDIT_LIMIT_DECREASE
+  currentLimit   Float
+  requestedLimit Float
+  reason         String?
+  status         String   @default("PENDING") // PENDING | APPROVED | REJECTED | CANCELLED
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  decision LimitDecision?
+
+  @@index([status])
+  @@index([customerId])
+}
+
+model LimitDecision {
+  id          String   @id @default(cuid())
+  requestId   String   @unique
+  request     CreditLimitRequest @relation(fields: [requestId], references: [id])
+  officerId   String
+  officer     User     @relation(fields: [officerId], references: [id])
+  decision    String // APPROVED | REJECTED
+  comment     String?
+  decidedAt   DateTime @default(now())
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  timestamp  DateTime @default(now())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  action     String
+  entityType String
+  entityId   String
+  comment    String?
+
+  @@index([entityType, entityId])
+}

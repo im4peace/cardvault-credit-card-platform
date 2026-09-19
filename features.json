@@ -1,0 +1,186 @@
+[
+  {
+    "id": "F001",
+    "category": "functional",
+    "story": "AUTH-1",
+    "group": "A",
+    "description": "Customer can register and log in (JWT, hashed password); role is always CUSTOMER",
+    "steps": [
+      "POST /auth/register returns 201 + token",
+      "POST /auth/login with wrong password returns 401",
+      "GET /auth/me with token returns the user"
+    ],
+    "passes": true,
+    "last_evaluated": "2026-09-19T07:10:53.942Z",
+    "failure_reason": null,
+    "failure_layer": null
+  },
+  {
+    "id": "F002",
+    "category": "functional",
+    "story": "AUTH-2",
+    "group": "A",
+    "description": "Role-based access: customers cannot use /officer routes; officers cannot use customer routes",
+    "steps": [
+      "Customer token on GET /officer/applications returns 403",
+      "Officer token on GET /applications returns 403",
+      "No token returns 401"
+    ],
+    "passes": true,
+    "last_evaluated": "2026-09-19T07:10:53.942Z",
+    "failure_reason": null,
+    "failure_layer": null
+  },
+  {
+    "id": "F003",
+    "category": "functional",
+    "story": "APP-1",
+    "group": "A",
+    "description": "Customer can create, edit (DRAFT only) and submit a credit card application",
+    "steps": [
+      "POST /applications returns DRAFT",
+      "PATCH while DRAFT succeeds",
+      "POST /applications/:id/submit returns PENDING_CREDIT_REVIEW",
+      "PATCH after submit returns 409"
+    ],
+    "passes": true,
+    "last_evaluated": "2026-09-19T07:10:53.942Z",
+    "failure_reason": null,
+    "failure_layer": null
+  },
+  {
+    "id": "F004",
+    "category": "functional",
+    "story": "APP-2",
+    "group": "A",
+    "description": "Credit Officer can approve (with limit) or reject (with comment) a pending application exactly once",
+    "steps": [
+      "Approve creates ISSUED card with approved limit and application CARD_ISSUED",
+      "Reject requires a comment and creates no card",
+      "Second decision returns 409"
+    ],
+    "passes": true,
+    "last_evaluated": "2026-09-19T07:10:53.942Z",
+    "failure_reason": null,
+    "failure_layer": null
+  },
+  {
+    "id": "F005",
+    "category": "functional",
+    "story": "CARD-1",
+    "group": "A",
+    "description": "Customer can activate an ISSUED card; ACTIVE cards cannot be re-activated",
+    "steps": [
+      "POST /cards/:id/activate sets ACTIVE + activatedAt and application CARD_ACTIVATED",
+      "Second activation returns 409"
+    ],
+    "passes": true,
+    "last_evaluated": "2026-09-19T07:10:53.942Z",
+    "failure_reason": null,
+    "failure_layer": null
+  },
+  {
+    "id": "F006",
+    "category": "functional",
+    "story": "LIMIT-1",
+    "group": "A",
+    "description": "Customer can request a limit increase/decrease on an ACTIVE card; all requests need Credit Team approval",
+    "steps": [
+      "POST /cards/:id/limit-requests returns PENDING with derived type",
+      "Second pending request returns 409",
+      "Non-ACTIVE card returns 409"
+    ],
+    "passes": true,
+    "last_evaluated": "2026-09-19T07:10:53.942Z",
+    "failure_reason": null,
+    "failure_layer": null
+  },
+  {
+    "id": "F007",
+    "category": "functional",
+    "story": "LIMIT-2",
+    "group": "A",
+    "description": "Credit Officer can approve/reject limit requests; approval updates creditLimit and availableLimit",
+    "steps": [
+      "Approve updates card limit and shifts availableLimit by the delta",
+      "Reject leaves the card unchanged and stores the comment"
+    ],
+    "passes": true,
+    "last_evaluated": "2026-09-19T07:10:53.942Z",
+    "failure_reason": null,
+    "failure_layer": null
+  },
+  {
+    "id": "F008",
+    "category": "functional",
+    "story": "AUDIT-1",
+    "group": "A",
+    "description": "Every business event writes an AuditLog row with actor, entity, action, timestamp, comment",
+    "steps": [
+      "The nine audit actions are recorded across the full lifecycle",
+      "GET /officer/audit returns rows"
+    ],
+    "passes": true,
+    "last_evaluated": "2026-09-19T07:10:53.942Z",
+    "failure_reason": null,
+    "failure_layer": null
+  },
+  {
+    "id": "F009",
+    "category": "functional",
+    "story": "ISO-1",
+    "group": "A",
+    "description": "Customers can only access their own applications, cards and limit requests (404 otherwise)",
+    "steps": [
+      "Customer A GET/PATCH/submit/activate/limit-request on B's resources returns 404 with no data"
+    ],
+    "passes": true,
+    "last_evaluated": "2026-09-19T07:10:53.942Z",
+    "failure_reason": null,
+    "failure_layer": null
+  },
+  {
+    "id": "F010",
+    "category": "functional",
+    "story": "UI-1",
+    "group": "A",
+    "description": "Customer portal: dashboard, new application, application status, card details/activation, limit management, history",
+    "steps": [
+      "Playwright: register, apply, see PENDING CREDIT REVIEW",
+      "Activate card and request a limit change from the UI"
+    ],
+    "passes": true,
+    "last_evaluated": "2026-09-19T07:10:53.942Z",
+    "failure_reason": null,
+    "failure_layer": null
+  },
+  {
+    "id": "F011",
+    "category": "functional",
+    "story": "UI-2",
+    "group": "A",
+    "description": "Credit Officer portal: dashboard, pending applications, review/approve/reject, limit requests, decision history",
+    "steps": [
+      "Playwright: officer approves and rejects; history shows the decisions"
+    ],
+    "passes": true,
+    "last_evaluated": "2026-09-19T07:10:53.942Z",
+    "failure_reason": null,
+    "failure_layer": null
+  },
+  {
+    "id": "F012",
+    "category": "functional",
+    "story": "SEC-1",
+    "group": "A",
+    "description": "Security hardening: CORS allow-list, helmet headers, login lockout, JWT HS256 only, stored role wins over token claim",
+    "steps": [
+      "Disallowed Origin gets no Access-Control-Allow-Origin header",
+      "10 failed logins return 429"
+    ],
+    "passes": true,
+    "last_evaluated": "2026-09-19T07:10:53.942Z",
+    "failure_reason": null,
+    "failure_layer": null
+  }
+]
