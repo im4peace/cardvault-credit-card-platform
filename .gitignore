@@ -19,3 +19,16 @@ test-results/
 e2e/node_modules/
 backend/prisma/test.db*
 !.claude/skills/build/
+
+# Local repository audit / temporary files
+repo_structure.txt
+*.log
+
+# OS / editor files
+.DS_Store
+Thumbs.db
+.vscode/
+
+# Local test / coverage artifacts
+coverage/
+.nyc_output/
