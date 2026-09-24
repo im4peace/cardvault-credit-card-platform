@@ -1,4 +1,4 @@
-# Credit Card Application & Management — DEMO
+# CardVault - Credit Card Application and Limit Management Demo
 
 > **This is a DEMO / learning application. It uses simulated data only.**
 > It must **not** be used for real credit-card processing. There is no integration with real banks, payment networks,
@@ -7,7 +7,33 @@
 
 Customers apply for a card online; a back-office Credit Team reviews and approves or rejects; approved applications get a
 simulated card the customer activates; customers can request credit-limit increases or decreases, which the Credit Team
-decides. Requirements: `specs/brd/brd.md`.
+decides. Requirements: [`specs/brd/brd.md`](specs/brd/brd.md).
+
+## My role and project context
+
+I created this as a Virtusa AI Native Engineer training hackathon project. I defined the credit card application and limit management journeys, business rules, and acceptance criteria, then used Claude Harness Engine and Claude Code to move from requirements through implementation, tests, review, and integration. AI tools generated and revised code under that workflow; this is a demonstration of product definition and AI-assisted delivery, not a claim that I manually wrote the entire application or deployed it at a bank.
+
+## Key features
+
+- Customer application with draft, submission, and status tracking.
+- Credit officer review and approval or rejection with an audit trail.
+- Simulated card issuance and customer activation after approval.
+- Credit limit increase and decrease requests with officer decisions.
+- Role-based access, customer-level record isolation, and automated tests.
+
+## Five-minute demo
+
+1. Follow [Run locally on Windows](#run-locally-on-windows) and open `http://localhost:5173`.
+2. Sign in as `customer4@test.com` using the demo password below. Open the draft application, complete or review its details, and submit it.
+3. Sign out and sign in as `officer@test.com`. Open **Pending Applications**, review the newly submitted application, set an approved limit, and approve it.
+4. Sign out and return as `customer4@test.com`. Open **My Card** and activate the newly issued simulated card.
+5. Open **Credit Limit**, submit a limit change request, then sign in as the officer to review it. Return to the customer account to show the decision and request history.
+
+The seed resets the demo data. Avoid rerunning it during a demo because it deletes the changes you made in the local development database.
+
+## Screenshots
+
+Screenshots will be added after capturing the running demo. Suggested views: customer application, officer review, card activation, and credit limit decision. The application contains simulated data only.
 
 ## Architecture overview
 
@@ -32,45 +58,52 @@ CreditCardApplication, CreditDecision, Card, CreditLimitRequest, LimitDecision, 
 - Git Bash / any POSIX shell for `init.sh` (optional; the commands below work in PowerShell too)
 - For E2E only: Playwright's Chromium (`cd e2e && npx playwright install chromium`)
 
-## Installation and environment
+## Run locally on Windows
 
-```bash
-cd backend  && npm install
-cd ../frontend && npm install
-cd ../e2e   && npm install && npx playwright install chromium
+Open **two PowerShell terminals** in the repository root. First install dependencies and prepare the development database in Terminal 1:
+
+```powershell
+cd backend
+npm ci
+if (-not (Test-Path .env)) { Copy-Item .env.example .env }
+npx prisma generate
+npx prisma migrate deploy
+npm run seed
+npm run dev
 ```
 
-Backend environment (`backend/.env`, git-ignored — copy from the example):
+If `backend/.env` already exists, leave it in place; do not overwrite a working local configuration. The seed command **deletes and recreates** demo rows in the development database. Run it only when you want a fresh demo.
 
-```bash
-cd backend && cp .env.example .env
+In Terminal 2, starting again from the **repository root**:
+
+```powershell
+cd frontend
+npm ci
+npm run dev
 ```
+
+Open `http://localhost:5173`. The backend listens at `http://localhost:4000`; `GET /health` is available for a quick API check. To stop each development server, press **Ctrl+C** in its terminal.
+
+For Git Bash or another POSIX shell, `./init.sh` installs backend and frontend dependencies, prepares and reseeds the development database, and starts both servers. It also resets the demo rows; do not run it when you need to preserve your current local demo state.
+
+### Environment configuration
+
+`backend/.env.example` contains local demo settings. Copy it to `backend/.env` before running the backend. The `.env` file is ignored by Git.
 
 | Variable | Default | Notes |
 |----------|---------|-------|
 | `DATABASE_URL` | `file:./dev.db` | SQLite file, relative to `backend/prisma/` |
-| `JWT_SECRET` | *(unset)* | In `production` it is **mandatory**: 32+ chars and not the demo placeholder, or the server refuses to start. Outside production, if unset a random per-process secret is generated (no built-in default key; tokens reset on restart). `.env.example` ships an explicitly demo-only value for local convenience. Never commit a real secret; `.env` is git-ignored |
-| `PORT` | `4000` | |
-| `CORS_ORIGIN` | `http://localhost:5173` | Comma-separated allow-list of browser origins |
-| `MAX_APPROVED_LIMIT` | `100000` | Must be a positive number (invalid values stop startup). System maximum credit limit the Credit Team may approve / a customer may request a change to |
-| `TRUST_PROXY` | unset (0) | Number of reverse-proxy hops in front of the API (e.g. `1`). Needed only behind a proxy, so login throttling sees the real client IP; it is a hop count, never "trust everything". Without it, `X-Forwarded-For` is ignored (and behind a proxy all clients would share one IP) |
+| `JWT_SECRET` | *(unset)* | In `production` it is mandatory: 32+ characters and not the demo placeholder. Outside production, an unset value generates a random per-process secret. The example contains a demo-only value; never commit a real secret. |
+| `PORT` | `4000` | Backend port |
+| `CORS_ORIGIN` | `http://localhost:5173` | Allowed frontend origin |
+| `MAX_APPROVED_LIMIT` | `100000` | Maximum demo credit limit |
+| `TRUST_PROXY` | unset (0) | Configure only for the actual number of reverse-proxy hops. |
 
 Frontend: optional `VITE_API_URL` (default `http://localhost:4000`).
 
-## Database, seed and startup
+## Architecture and data
 
-```bash
-cd backend
-npx prisma migrate deploy     # create/upgrade the SQLite schema
-npm run seed                  # RESET the dev database to the demo data below
-npm run dev                   # API on http://localhost:4000
-
-cd frontend
-npm run dev                   # UI on http://localhost:5173
-```
-
-`./init.sh` runs the whole sequence. `npm run seed` **wipes and re-creates** all rows in the database it points at, and
-refuses to run when `NODE_ENV=production`.
+The backend uses Prisma and SQLite. `npx prisma migrate deploy` applies migrations; `npm run seed` recreates the demo users and records below. This demo does not connect to a real bank, bureau, issuer, or payment network.
 
 ## Demo accounts (demo-only passwords — never reuse them)
 
@@ -121,7 +154,7 @@ Backend tests run against a throw-away SQLite file (`backend/prisma/test.db`), r
 ### End-to-end tests (Playwright)
 
 ```bash
-cd e2e && npm run test:e2e        # or: cd backend && npm run test:e2e
+cd e2e && npm ci && npx playwright install chromium && npm run test:e2e
 ```
 
 > **E2E tests reset their own test data.** They start a separate API (port 4100) and UI (port 5174) against a dedicated

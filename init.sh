@@ -1,19 +1,17 @@
 #!/bin/bash
 set -euo pipefail
 
-echo "=== Bootstrapping dev environment ==="
+echo "=== Bootstrapping demo environment (the seed resets local demo data) ==="
 
-# Backend dependencies
+# Backend configuration and dependencies. Preserve an existing local .env.
+if [ ! -f backend/.env ]; then
+  cp backend/.env.example backend/.env
+  echo "Created backend/.env from backend/.env.example (demo settings only)"
+fi
 cd backend && npm ci && npx prisma generate && npx prisma migrate deploy && npm run seed && cd ..
 
 # Frontend dependencies
 cd frontend && npm ci && cd ..
-
-# Environment
-if [ -f ".env.example" ] && [ ! -f ".env" ]; then
-  cp .env.example .env
-  echo "Created .env from .env.example — add your API keys"
-fi
 
 # Dev servers
 # Local mode: start servers in the background
